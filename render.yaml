@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: cashos-admin
+    runtime: node
+    plan: free
+    region: oregon
+
+    buildCommand: npm install && npm run build
+
+    startCommand: npm start
+
+    healthCheckPath: /
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: NEXT_PUBLIC_API_URL
+        value: "https://cashos-api.onrender.com/api/v1"
+
+      - key: HOSTNAME
+        value: "0.0.0.0"
