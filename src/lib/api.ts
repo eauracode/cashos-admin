@@ -19,6 +19,14 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
     },
     body: body ? JSON.stringify(body) : undefined,
   })
+  if (res.status === 401) {
+    // Session expired — clear stored token and send back to login
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('cashos_admin_auth')
+      window.location.replace('/login')
+    }
+    throw new Error('Session expired — please log in again')
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error((err as { message?: string }).message ?? `${method} ${path} failed (${res.status})`)
