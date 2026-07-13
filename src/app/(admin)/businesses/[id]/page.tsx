@@ -75,7 +75,11 @@ export default function BusinessDetailPage() {
             <h1 className="text-2xl font-bold text-white">
               {biz.businessName || <span className="italic text-gray-400">Unnamed Business</span>}
             </h1>
-            <p className="text-gray-400 text-sm mt-1">{biz.ownerPhone} &middot; {biz.businessType}</p>
+            <p className="text-gray-400 text-sm mt-1">
+              {biz.ownerEmail ?? <span className="italic">no email</span>}
+              {biz.ownerPhone ? <> &middot; {biz.ownerPhone}</> : null}
+              {' '}&middot; {biz.businessType}
+            </p>
           </div>
           <div className="flex gap-2 flex-wrap">
             {kycBadge(biz.kycStatus)}
@@ -85,7 +89,7 @@ export default function BusinessDetailPage() {
             }
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-700">
+        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pt-4 border-t border-gray-700">
           <div>
             <p className="text-xs text-gray-500 mb-1">NUBAN</p>
             <p className="text-gray-200 font-mono text-sm">{biz.nuban ?? '—'}</p>
@@ -93,6 +97,10 @@ export default function BusinessDetailPage() {
           <div>
             <p className="text-xs text-gray-500 mb-1">Bank</p>
             <p className="text-gray-200 text-sm">{biz.nubanBankName ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">State</p>
+            <p className="text-gray-200 text-sm">{biz.businessState ?? '—'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">Business ID</p>

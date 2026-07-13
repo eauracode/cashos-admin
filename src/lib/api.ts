@@ -58,7 +58,9 @@ export interface AdminStats {
 export interface BusinessRow {
   id: string
   businessName: string
-  ownerPhone: string
+  ownerEmail: string | null
+  ownerPhone: string | null
+  businessState: string | null
   businessType: string
   kycStatus: string
   onboardingComplete: boolean
@@ -89,7 +91,9 @@ export interface PurseRow {
 export interface BusinessDetail {
   id: string
   businessName: string
-  ownerPhone: string
+  ownerEmail: string | null
+  ownerPhone: string | null
+  businessState: string | null
   businessType: string
   kycStatus: string
   onboardingComplete: boolean

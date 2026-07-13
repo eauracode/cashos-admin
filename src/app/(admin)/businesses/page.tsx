@@ -61,7 +61,9 @@ export default function BusinessesPage() {
             <TableHeader>
               <TableRow className="border-gray-700 hover:bg-transparent">
                 <TableHead className="text-gray-400 font-medium">Business</TableHead>
+                <TableHead className="text-gray-400 font-medium">Email</TableHead>
                 <TableHead className="text-gray-400 font-medium">Phone</TableHead>
+                <TableHead className="text-gray-400 font-medium">State</TableHead>
                 <TableHead className="text-gray-400 font-medium">Type</TableHead>
                 <TableHead className="text-gray-400 font-medium">KYC</TableHead>
                 <TableHead className="text-gray-400 font-medium">Onboarded</TableHead>
@@ -75,7 +77,7 @@ export default function BusinessesPage() {
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <TableRow key={i} className="border-gray-700">
-                    {Array.from({ length: 9 }).map((_, j) => (
+                    {Array.from({ length: 11 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full bg-gray-700" /></TableCell>
                     ))}
                   </TableRow>
@@ -88,7 +90,9 @@ export default function BusinessesPage() {
                     onClick={() => router.push(`/businesses/${b.id}`)}
                   >
                     <TableCell className="text-white font-medium">{b.businessName || <span className="text-gray-500 italic">Unnamed</span>}</TableCell>
-                    <TableCell className="text-gray-300 font-mono text-sm">{b.ownerPhone}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{b.ownerEmail ?? <span className="text-gray-600">—</span>}</TableCell>
+                    <TableCell className="text-gray-300 font-mono text-sm">{b.ownerPhone ?? <span className="text-gray-600">—</span>}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{b.businessState ?? <span className="text-gray-600">—</span>}</TableCell>
                     <TableCell className="text-gray-300 text-sm">{b.businessType}</TableCell>
                     <TableCell>{kycBadge(b.kycStatus)}</TableCell>
                     <TableCell>
