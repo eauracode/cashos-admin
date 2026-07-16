@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { adminApi, type BusinessRow } from '@/lib/api'
 import { koboToNaira, formatNaira, fmtDate } from '@/lib/utils'
@@ -10,7 +10,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 
 function kycBadge(status: string) {
   if (status === 'APPROVED') return <Badge className="bg-emerald-700 text-emerald-100 hover:bg-emerald-700">Approved</Badge>
@@ -26,10 +27,22 @@ export default function BusinessesPage() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleSearchChange = (val: string) => {
+    setSearchInput(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setSearch(val.trim())
+      setPage(1)
+    }, 350)
+  }
 
   useEffect(() => {
     setLoading(true)
-    adminApi.businesses(page)
+    adminApi.businesses(page, search || undefined)
       .then((res) => {
         setData(res.data)
         setTotal(res.total)
@@ -37,16 +50,27 @@ export default function BusinessesPage() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [page])
+  }, [page, search])
 
   const from = (page - 1) * 20 + 1
   const to = Math.min(page * 20, total)
 
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Businesses</h1>
-        <p className="text-gray-400 text-sm mt-1">All registered businesses on the platform</p>
+      <div className="flex items-start justify-between mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Businesses</h1>
+          <p className="text-gray-400 text-sm mt-1">All registered businesses on the platform</p>
+        </div>
+        <div className="relative w-72 shrink-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+          <Input
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search name, email or phone…"
+            className="pl-9 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:ring-indigo-500/20"
+          />
+        </div>
       </div>
 
       {error && (

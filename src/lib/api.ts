@@ -38,7 +38,11 @@ export const adminApi = {
   login: (username: string, password: string) =>
     req<{ token: string }>('POST', '/admin/auth/login', { username, password }),
   stats: () => req<AdminStats>('GET', '/admin/stats'),
-  businesses: (page = 1) => req<BusinessList>('GET', `/admin/businesses?page=${page}`),
+  businesses: (page = 1, search?: string) => {
+    const params = new URLSearchParams({ page: String(page) })
+    if (search) params.set('search', search)
+    return req<BusinessList>('GET', `/admin/businesses?${params}`)
+  },
   getBusiness: (id: string) => req<BusinessDetail>('GET', `/admin/businesses/${id}`),
   inflows: (page = 1) => req<InflowList>('GET', `/admin/inflows?page=${page}`),
   wallets: (page = 1) => req<WalletList>('GET', `/admin/wallets?page=${page}`),
@@ -52,6 +56,7 @@ export interface AdminStats {
   totalInflows: number
   recentInflowKobo: string
   totalPurseBalanceKobo: string
+  fundsUnderManagementKobo: string
   dailyInflows: { date: string; amountKobo: string }[]
 }
 

@@ -113,7 +113,7 @@ export default function DashboardPage() {
             />
             <KpiCard
               title="Funds Under Management"
-              value={formatNaira(koboToNaira(stats.totalPurseBalanceKobo), true)}
+              value={formatNaira(koboToNaira(stats.fundsUnderManagementKobo), true)}
               icon={DollarSign}
               accent="bg-indigo-600"
             />
