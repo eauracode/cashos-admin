@@ -7,16 +7,22 @@ import {
   Building2,
   ArrowLeftRight,
   Wallet,
+  Bell,
+  ShieldAlert,
+  MinusCircle,
   LogOut,
 } from 'lucide-react'
 import { useAdminAuth } from '@/store/admin-auth'
 import { cn } from '@/lib/utils'
 
 const nav = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Businesses', href: '/businesses', icon: Building2 },
-  { label: 'Transactions', href: '/transactions', icon: ArrowLeftRight },
-  { label: 'Wallets', href: '/wallets', icon: Wallet },
+  { label: 'Dashboard',     href: '/dashboard',     icon: LayoutDashboard },
+  { label: 'Businesses',    href: '/businesses',    icon: Building2 },
+  { label: 'Transactions',  href: '/transactions',  icon: ArrowLeftRight },
+  { label: 'Wallets',           href: '/wallets',           icon: Wallet },
+  { label: 'Spends',            href: '/spends',            icon: MinusCircle },
+  { label: 'Emergency Unlocks', href: '/emergency-unlocks', icon: ShieldAlert },
+  { label: 'Notifications',     href: '/notifications',     icon: Bell },
 ]
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {

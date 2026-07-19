@@ -10,7 +10,105 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, CreditCard, BarChart2 } from 'lucide-react'
+import type { BusinessSubscription, BusinessSalesProfile } from '@/lib/api'
+
+function planBadge(plan: string, status: string) {
+  if (status === 'ACTIVE') return <Badge className="bg-emerald-700/30 text-emerald-400 hover:bg-emerald-700/30 border border-emerald-700/50">Active — {plan}</Badge>
+  if (plan === 'TRIAL' && status === 'TRIALING') return <Badge className="bg-amber-700/30 text-amber-400 hover:bg-amber-700/30 border border-amber-700/50">Trialing</Badge>
+  if (status === 'EXPIRED') return <Badge className="bg-red-800/30 text-red-400 hover:bg-red-800/30 border border-red-700/50">Expired</Badge>
+  if (status === 'CANCELLED') return <Badge className="bg-red-800/30 text-red-400 hover:bg-red-800/30 border border-red-700/50">Cancelled</Badge>
+  if (status === 'PAST_DUE') return <Badge className="bg-orange-800/30 text-orange-400 hover:bg-orange-800/30 border border-orange-700/50">Past Due</Badge>
+  return <Badge className="bg-gray-700 text-gray-400 hover:bg-gray-700">{status}</Badge>
+}
+
+function SubscriptionSection({ sub }: { sub: BusinessSubscription | null }) {
+  return (
+    <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-6">
+      <div className="flex items-center gap-2 mb-4">
+        <CreditCard className="w-4 h-4 text-indigo-400" />
+        <h2 className="text-white font-semibold">Billing</h2>
+      </div>
+      {!sub ? (
+        <p className="text-gray-500 text-sm italic">No subscription record yet (business not yet onboarded).</p>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Status</p>
+            {planBadge(sub.plan, sub.status)}
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Plan</p>
+            <p className="text-gray-200 text-sm">{sub.plan}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Trial ends</p>
+            <p className="text-gray-200 text-sm">{sub.trialEndsAt ? fmtDate(sub.trialEndsAt) : '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Current period end</p>
+            <p className="text-gray-200 text-sm">{sub.currentPeriodEnd ? fmtDate(sub.currentPeriodEnd) : '—'}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function fmt(kobo: string | null) {
+  if (!kobo) return '—'
+  return formatNaira(koboToNaira(kobo))
+}
+
+function SalesProfileSection({ profile }: { profile: BusinessSalesProfile }) {
+  const hasData = profile.avgMonthlySalesUnits !== null || profile.avgSaleAvgKobo !== null
+  return (
+    <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-6">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart2 className="w-4 h-4 text-indigo-400" />
+        <h2 className="text-white font-semibold">Sales Profile (Onboarding)</h2>
+      </div>
+      {!hasData ? (
+        <p className="text-gray-500 text-sm italic">Sales profile not yet completed.</p>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Avg monthly sales</p>
+            <p className="text-gray-200 text-sm">{profile.avgMonthlySalesUnits?.toLocaleString() ?? '—'} units</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Avg sale amount</p>
+            <p className="text-gray-200 text-sm">{fmt(profile.avgSaleAvgKobo)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Sale range</p>
+            <p className="text-gray-200 text-sm">{fmt(profile.avgSaleMinKobo)} – {fmt(profile.avgSaleMaxKobo)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">COGS %</p>
+            <p className="text-gray-200 text-sm">{profile.cogsPct !== null ? `${profile.cogsPct}%` : '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Monthly rent</p>
+            <p className="text-gray-200 text-sm">{fmt(profile.rentMonthlyKobo)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Monthly salaries</p>
+            <p className="text-gray-200 text-sm">{fmt(profile.salariesMonthlyKobo)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Monthly debt repay</p>
+            <p className="text-gray-200 text-sm">{fmt(profile.debtMonthlyKobo)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Owner&apos;s pay</p>
+            <p className="text-gray-200 text-sm">{fmt(profile.ownersPayMonthlyKobo)}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function kycBadge(status: string) {
   if (status === 'APPROVED') return <Badge className="bg-emerald-700 text-emerald-100 hover:bg-emerald-700">Approved</Badge>
@@ -112,6 +210,12 @@ export default function BusinessDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Billing / Subscription */}
+      <SubscriptionSection sub={biz.subscription} />
+
+      {/* Sales Profile */}
+      <SalesProfileSection profile={biz.salesProfile} />
 
       {/* Wallets */}
       <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden mb-6">

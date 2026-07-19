@@ -19,6 +19,15 @@ function kycBadge(status: string) {
   return <Badge className="bg-amber-700 text-amber-100 hover:bg-amber-700">Pending</Badge>
 }
 
+function planBadge(plan: string | null, status: string | null) {
+  if (!plan) return <span className="text-gray-600 text-xs">—</span>
+  if (status === 'ACTIVE') return <Badge className="bg-emerald-700/30 text-emerald-400 hover:bg-emerald-700/30 border border-emerald-700/50 text-xs">Active</Badge>
+  if (plan === 'TRIAL' && status === 'TRIALING') return <Badge className="bg-amber-700/30 text-amber-400 hover:bg-amber-700/30 border border-amber-700/50 text-xs">Trial</Badge>
+  if (status === 'EXPIRED' || status === 'CANCELLED') return <Badge className="bg-red-800/30 text-red-400 hover:bg-red-800/30 border border-red-700/50 text-xs">{status === 'EXPIRED' ? 'Expired' : 'Cancelled'}</Badge>
+  if (status === 'PAST_DUE') return <Badge className="bg-orange-800/30 text-orange-400 hover:bg-orange-800/30 border border-orange-700/50 text-xs">Past due</Badge>
+  return <Badge className="bg-gray-700 text-gray-400 hover:bg-gray-700 text-xs">{plan}</Badge>
+}
+
 export default function BusinessesPage() {
   const router = useRouter()
   const [data, setData] = useState<BusinessRow[]>([])
@@ -89,6 +98,7 @@ export default function BusinessesPage() {
                 <TableHead className="text-gray-400 font-medium">Phone</TableHead>
                 <TableHead className="text-gray-400 font-medium">State</TableHead>
                 <TableHead className="text-gray-400 font-medium">Type</TableHead>
+                <TableHead className="text-gray-400 font-medium">Plan</TableHead>
                 <TableHead className="text-gray-400 font-medium">KYC</TableHead>
                 <TableHead className="text-gray-400 font-medium">Onboarded</TableHead>
                 <TableHead className="text-gray-400 font-medium">NUBAN</TableHead>
@@ -101,7 +111,7 @@ export default function BusinessesPage() {
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <TableRow key={i} className="border-gray-700">
-                    {Array.from({ length: 11 }).map((_, j) => (
+                    {Array.from({ length: 12 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full bg-gray-700" /></TableCell>
                     ))}
                   </TableRow>
@@ -118,6 +128,7 @@ export default function BusinessesPage() {
                     <TableCell className="text-gray-300 font-mono text-sm">{b.ownerPhone ?? <span className="text-gray-600">—</span>}</TableCell>
                     <TableCell className="text-gray-300 text-sm">{b.businessState ?? <span className="text-gray-600">—</span>}</TableCell>
                     <TableCell className="text-gray-300 text-sm">{b.businessType}</TableCell>
+                    <TableCell>{planBadge(b.subscriptionPlan, b.subscriptionStatus)}</TableCell>
                     <TableCell>{kycBadge(b.kycStatus)}</TableCell>
                     <TableCell>
                       {b.onboardingComplete

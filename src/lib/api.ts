@@ -1,4 +1,4 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1'
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://cashos-api.onrender.com/api/v1'
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -20,7 +20,6 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
     body: body ? JSON.stringify(body) : undefined,
   })
   if (res.status === 401) {
-    // Session expired — clear stored token and send back to login
     if (typeof window !== 'undefined') {
       localStorage.removeItem('cashos_admin_auth')
       window.location.replace('/login')
@@ -46,6 +45,14 @@ export const adminApi = {
   getBusiness: (id: string) => req<BusinessDetail>('GET', `/admin/businesses/${id}`),
   inflows: (page = 1) => req<InflowList>('GET', `/admin/inflows?page=${page}`),
   wallets: (page = 1) => req<WalletList>('GET', `/admin/wallets?page=${page}`),
+  emergencyUnlocks: (page = 1, pendingOnly = false) =>
+    req<EmergencyUnlockList>('GET', `/admin/emergency-unlocks?page=${page}&pending=${pendingOnly}`),
+  spends: (page = 1) => req<SpendList>('GET', `/admin/spends?page=${page}`),
+  push: {
+    stats:     () => req<{ subscriberCount: number }>('GET', '/admin/push/stats'),
+    broadcast: (body: { title: string; body: string; url?: string }) =>
+      req<{ sent: number; failed: number }>('POST', '/admin/push/broadcast', body),
+  },
 }
 
 // Types
@@ -57,6 +64,9 @@ export interface AdminStats {
   recentInflowKobo: string
   totalPurseBalanceKobo: string
   fundsUnderManagementKobo: string
+  billingTrialing: number
+  billingActive: number
+  billingLapsed: number
   dailyInflows: { date: string; amountKobo: string }[]
 }
 
@@ -73,6 +83,8 @@ export interface BusinessRow {
   nubanBankName: string | null
   inflowCount: number
   totalBalanceKobo: string
+  subscriptionPlan: string | null
+  subscriptionStatus: string | null
   createdAt: string
 }
 
@@ -91,6 +103,26 @@ export interface PurseRow {
   balanceKobo: string
   allocationBps: number
   lockState: string
+}
+
+export interface BusinessSubscription {
+  plan: string
+  status: string
+  trialEndsAt: string | null
+  currentPeriodEnd: string | null
+  cancelledAt: string | null
+}
+
+export interface BusinessSalesProfile {
+  avgMonthlySalesUnits: number | null
+  avgSaleMinKobo: string | null
+  avgSaleMaxKobo: string | null
+  avgSaleAvgKobo: string | null
+  cogsPct: number | null
+  rentMonthlyKobo: string | null
+  salariesMonthlyKobo: string | null
+  debtMonthlyKobo: string | null
+  ownersPayMonthlyKobo: string | null
 }
 
 export interface BusinessDetail {
@@ -115,6 +147,8 @@ export interface BusinessDetail {
     undone: boolean
     createdAt: string
   }[]
+  subscription: BusinessSubscription | null
+  salesProfile: BusinessSalesProfile
 }
 
 export interface InflowRow {
@@ -152,6 +186,45 @@ export interface WalletRow {
 
 export interface WalletList {
   data: WalletRow[]
+  total: number
+  page: number
+  pages: number
+}
+
+export interface EmergencyUnlockRow {
+  id: string
+  businessId: string
+  businessName: string
+  ownerEmail: string | null
+  purseLabel: string
+  purseColor: string
+  reason: string
+  coolingOffEndsAt: string
+  confirmedAt: string | null
+  cancelledAt: string | null
+  createdAt: string
+}
+
+export interface EmergencyUnlockList {
+  data: EmergencyUnlockRow[]
+  total: number
+  page: number
+  pages: number
+}
+
+export interface SpendRow {
+  id: string
+  businessId: string
+  businessName: string
+  purseLabel: string
+  purseColor: string
+  amountKobo: string
+  description: string
+  createdAt: string
+}
+
+export interface SpendList {
+  data: SpendRow[]
   total: number
   page: number
   pages: number
