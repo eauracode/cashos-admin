@@ -60,8 +60,8 @@ function fmt(kobo: string | null) {
   return formatNaira(koboToNaira(kobo))
 }
 
-function SalesProfileSection({ profile }: { profile: BusinessSalesProfile }) {
-  const hasData = profile.avgMonthlySalesUnits !== null || profile.avgSaleAvgKobo !== null
+function SalesProfileSection({ profile }: { profile: BusinessSalesProfile | null }) {
+  const hasData = profile !== null && (profile.avgMonthlySalesUnits !== null || profile.avgSaleAvgKobo !== null)
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-6">
       <div className="flex items-center gap-2 mb-4">
@@ -74,35 +74,35 @@ function SalesProfileSection({ profile }: { profile: BusinessSalesProfile }) {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <div>
             <p className="text-xs text-gray-500 mb-1">Avg monthly sales</p>
-            <p className="text-gray-200 text-sm">{profile.avgMonthlySalesUnits?.toLocaleString() ?? '—'} units</p>
+            <p className="text-gray-200 text-sm">{profile!.avgMonthlySalesUnits?.toLocaleString() ?? '—'} units</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">Avg sale amount</p>
-            <p className="text-gray-200 text-sm">{fmt(profile.avgSaleAvgKobo)}</p>
+            <p className="text-gray-200 text-sm">{fmt(profile!.avgSaleAvgKobo)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">Sale range</p>
-            <p className="text-gray-200 text-sm">{fmt(profile.avgSaleMinKobo)} – {fmt(profile.avgSaleMaxKobo)}</p>
+            <p className="text-gray-200 text-sm">{fmt(profile!.avgSaleMinKobo)} – {fmt(profile!.avgSaleMaxKobo)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">COGS %</p>
-            <p className="text-gray-200 text-sm">{profile.cogsPct !== null ? `${profile.cogsPct}%` : '—'}</p>
+            <p className="text-gray-200 text-sm">{profile!.cogsPct !== null ? `${profile!.cogsPct}%` : '—'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">Monthly rent</p>
-            <p className="text-gray-200 text-sm">{fmt(profile.rentMonthlyKobo)}</p>
+            <p className="text-gray-200 text-sm">{fmt(profile!.rentMonthlyKobo)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">Monthly salaries</p>
-            <p className="text-gray-200 text-sm">{fmt(profile.salariesMonthlyKobo)}</p>
+            <p className="text-gray-200 text-sm">{fmt(profile!.salariesMonthlyKobo)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">Monthly debt repay</p>
-            <p className="text-gray-200 text-sm">{fmt(profile.debtMonthlyKobo)}</p>
+            <p className="text-gray-200 text-sm">{fmt(profile!.debtMonthlyKobo)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">Owner&apos;s pay</p>
-            <p className="text-gray-200 text-sm">{fmt(profile.ownersPayMonthlyKobo)}</p>
+            <p className="text-gray-200 text-sm">{fmt(profile!.ownersPayMonthlyKobo)}</p>
           </div>
         </div>
       )}

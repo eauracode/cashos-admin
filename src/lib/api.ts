@@ -148,7 +148,7 @@ export interface BusinessDetail {
     createdAt: string
   }[]
   subscription: BusinessSubscription | null
-  salesProfile: BusinessSalesProfile
+  salesProfile: BusinessSalesProfile | null
 }
 
 export interface InflowRow {

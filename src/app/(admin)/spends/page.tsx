@@ -30,9 +30,9 @@ export default function SpendsPage() {
       .finally(() => setLoading(false))
   }, [page])
 
-  const limit = 50
-  const from = (page - 1) * limit + 1
-  const to = Math.min(page * limit, total)
+  const pageSize = data.length || 50
+  const from = total > 0 ? (page - 1) * pageSize + 1 : 0
+  const to = Math.min((page - 1) * pageSize + pageSize, total)
 
   return (
     <div className="p-8">

@@ -131,19 +131,19 @@ export default function DashboardPage() {
           <>
             <KpiCard
               title="On Trial"
-              value={stats.billingTrialing.toLocaleString()}
+              value={(stats.billingTrialing ?? 0).toLocaleString()}
               icon={Users}
               accent="bg-amber-600"
             />
             <KpiCard
               title="Paying (Active)"
-              value={stats.billingActive.toLocaleString()}
+              value={(stats.billingActive ?? 0).toLocaleString()}
               icon={CreditCard}
               accent="bg-emerald-600"
             />
             <KpiCard
               title="Lapsed / Cancelled"
-              value={stats.billingLapsed.toLocaleString()}
+              value={(stats.billingLapsed ?? 0).toLocaleString()}
               icon={AlertTriangle}
               accent="bg-red-700"
             />
