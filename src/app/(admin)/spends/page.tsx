@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { adminApi, type SpendRow } from '@/lib/api'
 import { koboToNaira, formatNaira, fmtDateTime } from '@/lib/utils'
 import {
@@ -8,19 +8,30 @@ import {
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, MinusCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MinusCircle, Search } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 
 export default function SpendsPage() {
-  const [data, setData] = useState<SpendRow[]>([])
+  const [data, setData]   = useState<SpendRow[]>([])
   const [total, setTotal] = useState(0)
   const [pages, setPages] = useState(1)
-  const [page, setPage] = useState(1)
+  const [page, setPage]   = useState(1)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError]     = useState<string | null>(null)
+
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch]           = useState('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleSearchChange = (val: string) => {
+    setSearchInput(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => { setSearch(val.trim()); setPage(1) }, 350)
+  }
 
   useEffect(() => {
     setLoading(true)
-    adminApi.spends(page)
+    adminApi.spends(page, search || undefined)
       .then((res) => {
         setData(res.data)
         setTotal(res.total)
@@ -28,7 +39,7 @@ export default function SpendsPage() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [page])
+  }, [page, search])
 
   const pageSize = data.length || 50
   const from = total > 0 ? (page - 1) * pageSize + 1 : 0
@@ -36,13 +47,24 @@ export default function SpendsPage() {
 
   return (
     <div className="p-8">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-orange-600/20 flex items-center justify-center">
-          <MinusCircle className="w-5 h-5 text-orange-400" />
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-orange-600/20 flex items-center justify-center">
+            <MinusCircle className="w-5 h-5 text-orange-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Spend Records</h1>
+            <p className="text-gray-400 text-sm mt-0.5">Manual spend entries recorded by businesses from their wallets</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-white">Spend Records</h1>
-          <p className="text-gray-400 text-sm mt-0.5">Manual spend entries recorded by businesses from their wallets</p>
+        <div className="relative w-60">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+          <Input
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Business, wallet, description…"
+            className="pl-9 h-9 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:ring-indigo-500/20"
+          />
         </div>
       </div>
 
@@ -75,7 +97,9 @@ export default function SpendsPage() {
                 ))
               ) : data.length === 0 ? (
                 <TableRow className="border-gray-700">
-                  <TableCell colSpan={5} className="text-center text-gray-500 py-12">No spend records found</TableCell>
+                  <TableCell colSpan={5} className="text-center text-gray-500 py-12">
+                    {search ? 'No spend records match your search' : 'No spend records found'}
+                  </TableCell>
                 </TableRow>
               ) : (
                 data.map((s) => (

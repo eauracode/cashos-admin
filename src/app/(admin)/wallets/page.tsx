@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { adminApi, type WalletRow } from '@/lib/api'
 import { koboToNaira, formatNaira } from '@/lib/utils'
 import {
@@ -9,7 +9,12 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { ChevronLeft, ChevronRight, Search, SlidersHorizontal } from 'lucide-react'
+
+const selectCls = 'h-9 rounded-md border border-gray-700 bg-gray-800 px-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 appearance-none pr-7'
+
+const PURSE_TYPES = ['COGS', 'SAFE_TO_SPEND', 'OBLIGATION', 'TAX']
 
 function lockBadge(state: string) {
   if (state === 'LOCKED') return <Badge className="bg-gray-700 text-gray-300 hover:bg-gray-700">Locked</Badge>
@@ -19,24 +24,33 @@ function lockBadge(state: string) {
 }
 
 export default function WalletsPage() {
-  const [data, setData] = useState<WalletRow[]>([])
+  const [data, setData]   = useState<WalletRow[]>([])
   const [total, setTotal] = useState(0)
   const [pages, setPages] = useState(1)
-  const [page, setPage] = useState(1)
+  const [page, setPage]   = useState(1)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError]     = useState<string | null>(null)
+
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch]           = useState('')
+  const [purseType, setPurseType]     = useState('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleSearchChange = (val: string) => {
+    setSearchInput(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => { setSearch(val.trim()); setPage(1) }, 350)
+  }
+
+  const hasFilters = search || purseType
 
   useEffect(() => {
     setLoading(true)
-    adminApi.wallets(page)
-      .then((res) => {
-        setData(res.data)
-        setTotal(res.total)
-        setPages(res.pages)
-      })
+    adminApi.wallets(page, search || undefined, purseType || undefined)
+      .then((res) => { setData(res.data); setTotal(res.total); setPages(res.pages) })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [page])
+  }, [page, search, purseType])
 
   const limit = 50
   const from = (page - 1) * limit + 1
@@ -44,15 +58,44 @@ export default function WalletsPage() {
 
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Wallets</h1>
-        <p className="text-gray-400 text-sm mt-1">All purses / wallets across all businesses</p>
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Wallets</h1>
+          <p className="text-gray-400 text-sm mt-1">All purses / wallets across all businesses</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="relative w-56">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+            <Input
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Business or wallet name…"
+              className="pl-9 h-9 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:ring-indigo-500/20"
+            />
+          </div>
+
+          <div className="relative">
+            <select value={purseType} onChange={(e) => { setPurseType(e.target.value); setPage(1) }} className={selectCls}>
+              <option value="">All types</option>
+              {PURSE_TYPES.map((t) => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+            </select>
+            <SlidersHorizontal className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
+          </div>
+
+          {hasFilters && (
+            <button
+              onClick={() => { setSearchInput(''); setSearch(''); setPurseType(''); setPage(1) }}
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
-        <div className="bg-red-900/30 border border-red-700 rounded-lg px-4 py-3 text-red-300 text-sm mb-6">
-          {error}
-        </div>
+        <div className="bg-red-900/30 border border-red-700 rounded-lg px-4 py-3 text-red-300 text-sm mb-6">{error}</div>
       )}
 
       <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
@@ -79,7 +122,9 @@ export default function WalletsPage() {
                 ))
               ) : data.length === 0 ? (
                 <TableRow className="border-gray-700">
-                  <TableCell colSpan={6} className="text-center text-gray-500 py-12">No wallets found</TableCell>
+                  <TableCell colSpan={6} className="text-center text-gray-500 py-12">
+                    {hasFilters ? 'No wallets match your filters' : 'No wallets found'}
+                  </TableCell>
                 </TableRow>
               ) : (
                 data.map((p) => (
@@ -87,10 +132,7 @@ export default function WalletsPage() {
                     <TableCell className="text-gray-300 font-medium text-sm">{p.businessName}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: p.color }}
-                        />
+                        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
                         <span className="text-white font-medium">{p.label}</span>
                       </div>
                     </TableCell>
@@ -114,25 +156,13 @@ export default function WalletsPage() {
             {total > 0 ? `Showing ${from}–${to} of ${total}` : 'No wallets'}
           </p>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage(p => p - 1)}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white bg-transparent"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Prev
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white bg-transparent">
+              <ChevronLeft className="w-4 h-4" />Prev
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pages}
-              onClick={() => setPage(p => p + 1)}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white bg-transparent"
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
+            <Button variant="outline" size="sm" disabled={page >= pages} onClick={() => setPage(p => p + 1)}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white bg-transparent">
+              Next<ChevronRight className="w-4 h-4" />
             </Button>
           </div>
         </div>

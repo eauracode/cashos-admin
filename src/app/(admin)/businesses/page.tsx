@@ -11,7 +11,9 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, SlidersHorizontal } from 'lucide-react'
+
+const selectCls = 'h-9 rounded-md border border-gray-700 bg-gray-800 px-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 appearance-none pr-7'
 
 function kycBadge(status: string) {
   if (status === 'APPROVED') return <Badge className="bg-emerald-700 text-emerald-100 hover:bg-emerald-700">Approved</Badge>
@@ -37,21 +39,27 @@ export default function BusinessesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
+  const [search, setSearch]           = useState('')
+  const [kycStatus, setKycStatus]     = useState('')
+  const [onboarded, setOnboarded]     = useState('')
+  const [planStatus, setPlanStatus]   = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleSearchChange = (val: string) => {
     setSearchInput(val)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      setSearch(val.trim())
-      setPage(1)
-    }, 350)
+    debounceRef.current = setTimeout(() => { setSearch(val.trim()); setPage(1) }, 350)
   }
+
+  const handleFilter = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setter(e.target.value); setPage(1)
+  }
+
+  const hasFilters = search || kycStatus || onboarded || planStatus
 
   useEffect(() => {
     setLoading(true)
-    adminApi.businesses(page, search || undefined)
+    adminApi.businesses(page, search || undefined, kycStatus || undefined, onboarded || undefined, planStatus || undefined)
       .then((res) => {
         setData(res.data)
         setTotal(res.total)
@@ -59,26 +67,73 @@ export default function BusinessesPage() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [page, search])
+  }, [page, search, kycStatus, onboarded, planStatus])
 
   const from = (page - 1) * 20 + 1
   const to = Math.min(page * 20, total)
 
   return (
     <div className="p-8">
-      <div className="flex items-start justify-between mb-6 gap-4">
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-white">Businesses</h1>
           <p className="text-gray-400 text-sm mt-1">All registered businesses on the platform</p>
         </div>
-        <div className="relative w-72 shrink-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-          <Input
-            value={searchInput}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search name, email or phone…"
-            className="pl-9 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:ring-indigo-500/20"
-          />
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Search */}
+          <div className="relative w-60">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+            <Input
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Name, email or phone…"
+              className="pl-9 h-9 bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:ring-indigo-500/20"
+            />
+          </div>
+
+          {/* KYC */}
+          <div className="relative">
+            <select value={kycStatus} onChange={handleFilter(setKycStatus)} className={selectCls}>
+              <option value="">All KYC</option>
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+            <SlidersHorizontal className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
+          </div>
+
+          {/* Onboarded */}
+          <div className="relative">
+            <select value={onboarded} onChange={handleFilter(setOnboarded)} className={selectCls}>
+              <option value="">All</option>
+              <option value="true">Onboarded</option>
+              <option value="false">Not onboarded</option>
+            </select>
+            <SlidersHorizontal className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
+          </div>
+
+          {/* Plan status */}
+          <div className="relative">
+            <select value={planStatus} onChange={handleFilter(setPlanStatus)} className={selectCls}>
+              <option value="">All plans</option>
+              <option value="TRIALING">Trial</option>
+              <option value="ACTIVE">Active</option>
+              <option value="PAST_DUE">Past due</option>
+              <option value="EXPIRED">Expired</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+            <SlidersHorizontal className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
+          </div>
+
+          {hasFilters && (
+            <button
+              onClick={() => { setSearchInput(''); setSearch(''); setKycStatus(''); setOnboarded(''); setPlanStatus(''); setPage(1) }}
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 

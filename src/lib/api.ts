@@ -37,17 +37,35 @@ export const adminApi = {
   login: (username: string, password: string) =>
     req<{ token: string }>('POST', '/admin/auth/login', { username, password }),
   stats: () => req<AdminStats>('GET', '/admin/stats'),
-  businesses: (page = 1, search?: string) => {
+  businesses: (page = 1, search?: string, kycStatus?: string, onboarded?: string, subscriptionStatus?: string) => {
     const params = new URLSearchParams({ page: String(page) })
-    if (search) params.set('search', search)
+    if (search)             params.set('search', search)
+    if (kycStatus)          params.set('kycStatus', kycStatus)
+    if (onboarded)          params.set('onboarded', onboarded)
+    if (subscriptionStatus) params.set('subscriptionStatus', subscriptionStatus)
     return req<BusinessList>('GET', `/admin/businesses?${params}`)
   },
   getBusiness: (id: string) => req<BusinessDetail>('GET', `/admin/businesses/${id}`),
-  inflows: (page = 1) => req<InflowList>('GET', `/admin/inflows?page=${page}`),
-  wallets: (page = 1) => req<WalletList>('GET', `/admin/wallets?page=${page}`),
+  inflows: (page = 1, search?: string, channel?: string, status?: string) => {
+    const params = new URLSearchParams({ page: String(page) })
+    if (search)  params.set('search', search)
+    if (channel) params.set('channel', channel)
+    if (status)  params.set('status', status)
+    return req<InflowList>('GET', `/admin/inflows?${params}`)
+  },
+  wallets: (page = 1, search?: string, purseType?: string) => {
+    const params = new URLSearchParams({ page: String(page) })
+    if (search)    params.set('search', search)
+    if (purseType) params.set('purseType', purseType)
+    return req<WalletList>('GET', `/admin/wallets?${params}`)
+  },
   emergencyUnlocks: (page = 1, pendingOnly = false) =>
     req<EmergencyUnlockList>('GET', `/admin/emergency-unlocks?page=${page}&pending=${pendingOnly}`),
-  spends: (page = 1) => req<SpendList>('GET', `/admin/spends?page=${page}`),
+  spends: (page = 1, search?: string) => {
+    const params = new URLSearchParams({ page: String(page) })
+    if (search) params.set('search', search)
+    return req<SpendList>('GET', `/admin/spends?${params}`)
+  },
   push: {
     stats:     () => req<{ subscriberCount: number }>('GET', '/admin/push/stats'),
     broadcast: (body: { title: string; body: string; url?: string }) =>
