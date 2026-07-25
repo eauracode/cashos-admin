@@ -1,14 +1,56 @@
+import { useAdminAuth } from '@/store/admin-auth'
+
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://cashos-api.onrender.com/api/v1'
+
+// The admin token lives 48h. Once it's past the halfway mark, transparently
+// exchange it for a fresh one so an active operator is never logged out
+// mid-session. Refresh requires a still-valid token (guarded server-side),
+// so this must happen proactively — a dead token can't refresh itself.
+const REFRESH_AFTER_MS = 24 * 60 * 60 * 1000
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null
-  try {
-    const stored = localStorage.getItem('cashos_admin_auth')
-    return stored ? JSON.parse(stored).state?.token : null
-  } catch { return null }
+  return useAdminAuth.getState().token
+}
+
+let refreshInFlight: Promise<void> | null = null
+
+async function maybeRefresh(): Promise<void> {
+  if (typeof window === 'undefined') return
+  const { token, issuedAt } = useAdminAuth.getState()
+  if (!token) return
+  // Fresh enough — nothing to do. (Missing issuedAt = legacy session → refresh once.)
+  if (issuedAt && Date.now() - issuedAt < REFRESH_AFTER_MS) return
+  // Collapse concurrent refreshes into one network call.
+  if (refreshInFlight) return refreshInFlight
+
+  refreshInFlight = (async () => {
+    try {
+      const res = await fetch(`${BASE}/admin/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'bypass-tunnel-reminder': '1',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (res.ok) {
+        const { token: fresh } = await res.json()
+        if (fresh) useAdminAuth.getState().setToken(fresh)
+      }
+      // On failure keep the current token — the normal 401 path below handles a
+      // genuinely expired session.
+    } catch {
+      // Network hiccup — leave the token as-is and retry on the next request.
+    } finally {
+      refreshInFlight = null
+    }
+  })()
+  return refreshInFlight
 }
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
+  await maybeRefresh()
   const token = getToken()
   const res = await fetch(`${BASE}${path}`, {
     method,
