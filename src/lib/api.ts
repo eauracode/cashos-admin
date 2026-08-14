@@ -37,12 +37,11 @@ export const adminApi = {
   login: (username: string, password: string) =>
     req<{ token: string }>('POST', '/admin/auth/login', { username, password }),
   stats: () => req<AdminStats>('GET', '/admin/stats'),
-  businesses: (page = 1, search?: string, kycStatus?: string, onboarded?: string, subscriptionStatus?: string) => {
+  businesses: (page = 1, search?: string, kycStatus?: string, onboarded?: string) => {
     const params = new URLSearchParams({ page: String(page) })
-    if (search)             params.set('search', search)
-    if (kycStatus)          params.set('kycStatus', kycStatus)
-    if (onboarded)          params.set('onboarded', onboarded)
-    if (subscriptionStatus) params.set('subscriptionStatus', subscriptionStatus)
+    if (search)    params.set('search', search)
+    if (kycStatus) params.set('kycStatus', kycStatus)
+    if (onboarded) params.set('onboarded', onboarded)
     return req<BusinessList>('GET', `/admin/businesses?${params}`)
   },
   getBusiness: (id: string) => req<BusinessDetail>('GET', `/admin/businesses/${id}`),
@@ -82,9 +81,6 @@ export interface AdminStats {
   recentInflowKobo: string
   totalPurseBalanceKobo: string
   fundsUnderManagementKobo: string
-  billingTrialing: number
-  billingActive: number
-  billingLapsed: number
   dailyInflows: { date: string; amountKobo: string }[]
 }
 
@@ -101,8 +97,6 @@ export interface BusinessRow {
   nubanBankName: string | null
   inflowCount: number
   totalBalanceKobo: string
-  subscriptionPlan: string | null
-  subscriptionStatus: string | null
   createdAt: string
 }
 
@@ -121,14 +115,6 @@ export interface PurseRow {
   balanceKobo: string
   allocationBps: number
   lockState: string
-}
-
-export interface BusinessSubscription {
-  plan: string
-  status: string
-  trialEndsAt: string | null
-  currentPeriodEnd: string | null
-  cancelledAt: string | null
 }
 
 export interface BusinessSalesProfile {
@@ -165,7 +151,6 @@ export interface BusinessDetail {
     undone: boolean
     createdAt: string
   }[]
-  subscription: BusinessSubscription | null
   salesProfile: BusinessSalesProfile | null
 }
 

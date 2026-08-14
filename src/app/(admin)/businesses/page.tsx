@@ -21,15 +21,6 @@ function kycBadge(status: string) {
   return <Badge className="bg-amber-700 text-amber-100 hover:bg-amber-700">Pending</Badge>
 }
 
-function planBadge(plan: string | null, status: string | null) {
-  if (!plan) return <span className="text-gray-600 text-xs">—</span>
-  if (status === 'ACTIVE') return <Badge className="bg-emerald-700/30 text-emerald-400 hover:bg-emerald-700/30 border border-emerald-700/50 text-xs">Active</Badge>
-  if (plan === 'TRIAL' && status === 'TRIALING') return <Badge className="bg-amber-700/30 text-amber-400 hover:bg-amber-700/30 border border-amber-700/50 text-xs">Trial</Badge>
-  if (status === 'EXPIRED' || status === 'CANCELLED') return <Badge className="bg-red-800/30 text-red-400 hover:bg-red-800/30 border border-red-700/50 text-xs">{status === 'EXPIRED' ? 'Expired' : 'Cancelled'}</Badge>
-  if (status === 'PAST_DUE') return <Badge className="bg-orange-800/30 text-orange-400 hover:bg-orange-800/30 border border-orange-700/50 text-xs">Past due</Badge>
-  return <Badge className="bg-gray-700 text-gray-400 hover:bg-gray-700 text-xs">{plan}</Badge>
-}
-
 export default function BusinessesPage() {
   const router = useRouter()
   const [data, setData] = useState<BusinessRow[]>([])
@@ -42,7 +33,6 @@ export default function BusinessesPage() {
   const [search, setSearch]           = useState('')
   const [kycStatus, setKycStatus]     = useState('')
   const [onboarded, setOnboarded]     = useState('')
-  const [planStatus, setPlanStatus]   = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleSearchChange = (val: string) => {
@@ -55,11 +45,11 @@ export default function BusinessesPage() {
     setter(e.target.value); setPage(1)
   }
 
-  const hasFilters = search || kycStatus || onboarded || planStatus
+  const hasFilters = search || kycStatus || onboarded
 
   useEffect(() => {
     setLoading(true)
-    adminApi.businesses(page, search || undefined, kycStatus || undefined, onboarded || undefined, planStatus || undefined)
+    adminApi.businesses(page, search || undefined, kycStatus || undefined, onboarded || undefined)
       .then((res) => {
         setData(res.data)
         setTotal(res.total)
@@ -67,7 +57,7 @@ export default function BusinessesPage() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [page, search, kycStatus, onboarded, planStatus])
+  }, [page, search, kycStatus, onboarded])
 
   const from = (page - 1) * 20 + 1
   const to = Math.min(page * 20, total)
@@ -113,22 +103,9 @@ export default function BusinessesPage() {
             <SlidersHorizontal className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
           </div>
 
-          {/* Plan status */}
-          <div className="relative">
-            <select value={planStatus} onChange={handleFilter(setPlanStatus)} className={selectCls}>
-              <option value="">All plans</option>
-              <option value="TRIALING">Trial</option>
-              <option value="ACTIVE">Active</option>
-              <option value="PAST_DUE">Past due</option>
-              <option value="EXPIRED">Expired</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-            <SlidersHorizontal className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
-          </div>
-
           {hasFilters && (
             <button
-              onClick={() => { setSearchInput(''); setSearch(''); setKycStatus(''); setOnboarded(''); setPlanStatus(''); setPage(1) }}
+              onClick={() => { setSearchInput(''); setSearch(''); setKycStatus(''); setOnboarded(''); setPage(1) }}
               className="text-xs text-gray-400 hover:text-white transition-colors"
             >
               Clear
@@ -153,7 +130,6 @@ export default function BusinessesPage() {
                 <TableHead className="text-gray-400 font-medium">Phone</TableHead>
                 <TableHead className="text-gray-400 font-medium">State</TableHead>
                 <TableHead className="text-gray-400 font-medium">Type</TableHead>
-                <TableHead className="text-gray-400 font-medium">Plan</TableHead>
                 <TableHead className="text-gray-400 font-medium">KYC</TableHead>
                 <TableHead className="text-gray-400 font-medium">Onboarded</TableHead>
                 <TableHead className="text-gray-400 font-medium">NUBAN</TableHead>
@@ -166,7 +142,7 @@ export default function BusinessesPage() {
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <TableRow key={i} className="border-gray-700">
-                    {Array.from({ length: 12 }).map((_, j) => (
+                    {Array.from({ length: 11 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full bg-gray-700" /></TableCell>
                     ))}
                   </TableRow>
@@ -183,7 +159,6 @@ export default function BusinessesPage() {
                     <TableCell className="text-gray-300 font-mono text-sm">{b.ownerPhone ?? <span className="text-gray-600">—</span>}</TableCell>
                     <TableCell className="text-gray-300 text-sm">{b.businessState ?? <span className="text-gray-600">—</span>}</TableCell>
                     <TableCell className="text-gray-300 text-sm">{b.businessType}</TableCell>
-                    <TableCell>{planBadge(b.subscriptionPlan, b.subscriptionStatus)}</TableCell>
                     <TableCell>{kycBadge(b.kycStatus)}</TableCell>
                     <TableCell>
                       {b.onboardingComplete

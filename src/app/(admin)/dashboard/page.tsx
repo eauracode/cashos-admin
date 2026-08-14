@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { Building2, CheckCircle, TrendingUp, DollarSign, CreditCard, Users, AlertTriangle } from 'lucide-react'
+import { Building2, CheckCircle, TrendingUp, DollarSign } from 'lucide-react'
 import { adminApi, type AdminStats } from '@/lib/api'
 import { koboToNaira, formatNaira } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -116,36 +116,6 @@ export default function DashboardPage() {
               value={formatNaira(koboToNaira(stats.fundsUnderManagementKobo), true)}
               icon={DollarSign}
               accent="bg-indigo-600"
-            />
-          </>
-        )}
-      </div>
-
-      {/* KPI cards — row 2: billing */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {!stats ? (
-          <>
-            <KpiSkeleton /><KpiSkeleton /><KpiSkeleton />
-          </>
-        ) : (
-          <>
-            <KpiCard
-              title="On Trial"
-              value={(stats.billingTrialing ?? 0).toLocaleString()}
-              icon={Users}
-              accent="bg-amber-600"
-            />
-            <KpiCard
-              title="Paying (Active)"
-              value={(stats.billingActive ?? 0).toLocaleString()}
-              icon={CreditCard}
-              accent="bg-emerald-600"
-            />
-            <KpiCard
-              title="Lapsed / Cancelled"
-              value={(stats.billingLapsed ?? 0).toLocaleString()}
-              icon={AlertTriangle}
-              accent="bg-red-700"
             />
           </>
         )}
