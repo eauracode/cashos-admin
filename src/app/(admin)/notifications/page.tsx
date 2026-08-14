@@ -1,16 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, Mail, Send, Users, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Bell, Mail, Send, Users, CheckCircle, XCircle, Loader2, Trash2, ShieldCheck, ShieldOff } from 'lucide-react'
 import { adminApi } from '@/lib/api'
 
 interface PushResult  { sent: number; failed: number }
 interface EmailResult { sent: number; failed: number; total: number }
+interface PushConfig  { enabled: boolean; publicKey: string; publicKeyLen: number; publicKeyStart: string; publicKeyEnd: string }
 
 export default function NotificationsPage() {
   // ── Push state ──────────────────────────────────────────────────────────────
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null)
   const [loadingPushStats, setLoadingPushStats] = useState(true)
+  const [pushConfig, setPushConfig] = useState<PushConfig | null>(null)
+  const [clearingPush, setClearingPush] = useState(false)
+  const [clearResult, setClearResult] = useState<string | null>(null)
 
   const [pushTitle, setPushTitle]   = useState('')
   const [pushBody, setPushBody]     = useState('')
@@ -34,6 +38,10 @@ export default function NotificationsPage() {
       .then((s) => setSubscriberCount(s.subscriberCount))
       .catch(() => setSubscriberCount(0))
       .finally(() => setLoadingPushStats(false))
+
+    adminApi.push.config()
+      .then(setPushConfig)
+      .catch(() => null)
 
     adminApi.emails.count()
       .then(setEmailCount)
@@ -87,16 +95,63 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        {/* Stat */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 flex items-center gap-4 mb-5">
-          <div className="w-10 h-10 rounded-lg bg-indigo-600/20 flex items-center justify-center flex-shrink-0">
-            <Users className="w-5 h-5 text-indigo-400" />
+        {/* Stats row */}
+        <div className="flex flex-wrap gap-4 mb-5">
+          {/* Subscriber count */}
+          <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 flex items-center gap-4 flex-1 min-w-[180px]">
+            <div className="w-10 h-10 rounded-lg bg-indigo-600/20 flex items-center justify-center flex-shrink-0">
+              <Users className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-gray-400 text-xs font-medium uppercase tracking-wide">Subscribed devices</p>
+              {loadingPushStats
+                ? <div className="h-7 w-12 rounded bg-gray-700 animate-pulse mt-1" />
+                : <p className="text-2xl font-bold text-white mt-0.5">{subscriberCount ?? '—'}</p>}
+            </div>
           </div>
-          <div>
-            <p className="text-gray-400 text-xs font-medium uppercase tracking-wide">Subscribed devices</p>
-            {loadingPushStats
-              ? <div className="h-7 w-12 rounded bg-gray-700 animate-pulse mt-1" />
-              : <p className="text-2xl font-bold text-white mt-0.5">{subscriberCount ?? '—'}</p>}
+
+          {/* VAPID config status */}
+          <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 flex items-center gap-4 flex-1 min-w-[220px]">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${pushConfig?.enabled ? 'bg-emerald-600/20' : 'bg-red-600/20'}`}>
+              {pushConfig?.enabled
+                ? <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                : <ShieldOff className="w-5 h-5 text-red-400" />}
+            </div>
+            <div className="min-w-0">
+              <p className="text-gray-400 text-xs font-medium uppercase tracking-wide">VAPID config</p>
+              {!pushConfig
+                ? <div className="h-4 w-20 rounded bg-gray-700 animate-pulse mt-1" />
+                : pushConfig.enabled
+                  ? <p className="text-xs text-emerald-400 font-mono mt-1 truncate">
+                      {pushConfig.publicKeyStart}…{pushConfig.publicKeyEnd} ({pushConfig.publicKeyLen} chars)
+                    </p>
+                  : <p className="text-xs text-red-400 mt-1">Keys not configured</p>}
+            </div>
+          </div>
+
+          {/* Clear all subscriptions */}
+          <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 flex items-center gap-4">
+            <div>
+              <p className="text-gray-400 text-xs font-medium uppercase tracking-wide mb-1">Reset DB subscriptions</p>
+              <p className="text-gray-500 text-[11px] mb-3">Use after changing VAPID keys to remove stale records.</p>
+              {clearResult && <p className="text-emerald-400 text-xs mb-2">{clearResult}</p>}
+              <button
+                onClick={async () => {
+                  setClearingPush(true); setClearResult(null)
+                  try {
+                    const r = await adminApi.push.clearSubs()
+                    setClearResult(`Deleted ${r.deleted} subscription(s). Re-subscribe from the app now.`)
+                    setSubscriberCount(0)
+                  } catch { setClearResult('Failed to clear.') }
+                  finally { setClearingPush(false) }
+                }}
+                disabled={clearingPush}
+                className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 border border-red-800 hover:border-red-600 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {clearingPush ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                Clear all subscriptions
+              </button>
+            </div>
           </div>
         </div>
 

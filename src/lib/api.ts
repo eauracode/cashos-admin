@@ -67,6 +67,8 @@ export const adminApi = {
   },
   push: {
     stats:     () => req<{ subscriberCount: number }>('GET', '/admin/push/stats'),
+    config:    () => req<{ enabled: boolean; publicKey: string; publicKeyLen: number; publicKeyStart: string; publicKeyEnd: string }>('GET', '/admin/push/config'),
+    clearSubs: () => req<{ deleted: number }>('DELETE', '/admin/push/subscriptions'),
     broadcast: (body: { title: string; body: string; url?: string }) =>
       req<{ sent: number; failed: number }>('POST', '/admin/push/broadcast', body),
   },
