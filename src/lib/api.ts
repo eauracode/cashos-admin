@@ -70,6 +70,11 @@ export const adminApi = {
     broadcast: (body: { title: string; body: string; url?: string }) =>
       req<{ sent: number; failed: number }>('POST', '/admin/push/broadcast', body),
   },
+  emails: {
+    count:     () => req<{ total: number; withEmail: number }>('GET', '/admin/emails/count'),
+    broadcast: (body: { subject: string; body: string }) =>
+      req<{ sent: number; failed: number; total: number }>('POST', '/admin/emails/broadcast', body),
+  },
 }
 
 // Types
