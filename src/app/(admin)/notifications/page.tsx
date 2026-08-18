@@ -27,6 +27,11 @@ export default function NotificationsPage() {
   const [emailCount, setEmailCount]       = useState<{ total: number; withEmail: number } | null>(null)
   const [loadingEmailStats, setLoadingEmailStats] = useState(true)
 
+  const [recipientMode, setRecipientMode] = useState<'all' | 'custom'>('all')
+  const [customEmails, setCustomEmails]   = useState<string[]>([])
+  const [emailInput, setEmailInput]       = useState('')
+  const [emailInputError, setEmailInputError] = useState<string | null>(null)
+
   const [emailSubject, setEmailSubject]   = useState('')
   const [emailBody, setEmailBody]         = useState('')
   const [emailCtaText, setEmailCtaText]   = useState('')
@@ -34,6 +39,20 @@ export default function NotificationsPage() {
   const [sendingEmail, setSendingEmail]   = useState(false)
   const [emailResult, setEmailResult]     = useState<EmailResult | null>(null)
   const [emailError, setEmailError]       = useState<string | null>(null)
+
+  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+
+  const addEmail = () => {
+    const val = emailInput.trim().toLowerCase()
+    if (!val) return
+    if (!isValidEmail(val)) { setEmailInputError('Enter a valid email address'); return }
+    if (customEmails.includes(val)) { setEmailInputError('Already in the list'); return }
+    setCustomEmails(prev => [...prev, val])
+    setEmailInput('')
+    setEmailInputError(null)
+  }
+
+  const removeEmail = (email: string) => setCustomEmails(prev => prev.filter(e => e !== email))
 
   useEffect(() => {
     adminApi.push.stats()
@@ -68,14 +87,18 @@ export default function NotificationsPage() {
   const handleSendEmail = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!emailSubject.trim() || !emailBody.trim()) return
+    if (recipientMode === 'custom' && customEmails.length === 0) {
+      setEmailError('Add at least one recipient email address'); return
+    }
     setSendingEmail(true); setEmailResult(null); setEmailError(null)
     try {
       const res = await adminApi.emails.broadcast({
-        subject: emailSubject.trim(),
-        body:    emailBody.trim(),
+        subject:    emailSubject.trim(),
+        body:       emailBody.trim(),
         ...(emailCtaText.trim() && emailCtaUrl.trim()
           ? { ctaText: emailCtaText.trim(), ctaUrl: emailCtaUrl.trim() }
           : {}),
+        ...(recipientMode === 'custom' ? { recipients: customEmails } : {}),
       })
       setEmailResult(res)
     } catch (err: any) {
@@ -271,6 +294,82 @@ export default function NotificationsPage() {
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 max-w-xl">
           <h2 className="text-sm font-semibold text-white mb-4">Compose email</h2>
           <form onSubmit={handleSendEmail} className="space-y-4">
+
+            {/* ── Recipient mode ─────────────────────────────── */}
+            <div>
+              <label className={labelCls}>Send to</label>
+              <div className="flex gap-2">
+                <button type="button"
+                  onClick={() => setRecipientMode('all')}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold border transition-colors ${
+                    recipientMode === 'all'
+                      ? 'bg-indigo-600 border-indigo-600 text-white'
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-gray-500'
+                  }`}>
+                  All users
+                  {emailCount && <span className="ml-1.5 opacity-70 font-normal">({emailCount.withEmail})</span>}
+                </button>
+                <button type="button"
+                  onClick={() => setRecipientMode('custom')}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold border transition-colors ${
+                    recipientMode === 'custom'
+                      ? 'bg-indigo-600 border-indigo-600 text-white'
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-gray-500'
+                  }`}>
+                  Custom list
+                </button>
+              </div>
+            </div>
+
+            {/* ── Custom email list ───────────────────────────── */}
+            {recipientMode === 'custom' && (
+              <div className="border border-dashed border-gray-600 rounded-lg p-4 space-y-3">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  Recipient emails
+                  <span className="font-normal text-gray-600 normal-case tracking-normal ml-1">
+                    — for non-users or marketing lists
+                  </span>
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    value={emailInput}
+                    onChange={(e) => { setEmailInput(e.target.value); setEmailInputError(null) }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEmail() } }}
+                    placeholder="name@example.com"
+                    className={`${inputCls} flex-1`}
+                    type="email"
+                  />
+                  <button type="button" onClick={addEmail}
+                    className="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap">
+                    + Add
+                  </button>
+                </div>
+                {emailInputError && (
+                  <p className="text-[11px] text-red-400">{emailInputError}</p>
+                )}
+                {customEmails.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {customEmails.map((email) => (
+                      <span key={email}
+                        className="flex items-center gap-1.5 bg-gray-700 border border-gray-600 rounded-full px-3 py-1 text-xs text-gray-200">
+                        {email}
+                        <button type="button" onClick={() => removeEmail(email)}
+                          className="text-gray-500 hover:text-red-400 transition-colors leading-none">
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {customEmails.length === 0 && (
+                  <p className="text-[11px] text-gray-600">No recipients added yet. Type an email and press Enter or + Add.</p>
+                )}
+                {customEmails.length > 0 && (
+                  <p className="text-[11px] text-gray-500">{customEmails.length} recipient{customEmails.length !== 1 ? 's' : ''} added</p>
+                )}
+              </div>
+            )}
+
             <div>
               <label className={labelCls}>Subject</label>
               <input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)}
@@ -320,11 +419,17 @@ export default function NotificationsPage() {
                 </p>
               </div>
             )}
-            <button type="submit" disabled={sendingEmail || !emailSubject.trim() || !emailBody.trim()}
+            <button type="submit"
+              disabled={
+                sendingEmail || !emailSubject.trim() || !emailBody.trim() ||
+                (recipientMode === 'custom' && customEmails.length === 0)
+              }
               className="w-full flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">
               {sendingEmail
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>
-                : <><Mail className="w-4 h-4" /> Send to all {emailCount?.withEmail ?? ''} users</>}
+                : recipientMode === 'custom'
+                  ? <><Mail className="w-4 h-4" /> Send to {customEmails.length} recipient{customEmails.length !== 1 ? 's' : ''}</>
+                  : <><Mail className="w-4 h-4" /> Send to all {emailCount?.withEmail ?? ''} users</>}
             </button>
           </form>
         </div>
