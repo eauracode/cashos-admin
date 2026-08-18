@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, Mail, Send, Users, CheckCircle, XCircle, Loader2, Trash2, ShieldCheck, ShieldOff } from 'lucide-react'
+import { Bell, Mail, Send, Users, CheckCircle, XCircle, Loader2, Trash2, ShieldCheck, ShieldOff, ChevronDown, ChevronUp } from 'lucide-react'
 import { adminApi } from '@/lib/api'
 
 interface PushResult  { sent: number; failed: number }
@@ -38,6 +38,8 @@ export default function NotificationsPage() {
   const [emailCtaUrl, setEmailCtaUrl]     = useState('')
   const [sendingEmail, setSendingEmail]   = useState(false)
   const [emailResult, setEmailResult]     = useState<EmailResult | null>(null)
+  const [checkingTargets, setCheckingTargets] = useState(false)
+  const [emailTargets, setEmailTargets]   = useState<{ total: number; targets: { email: string | null; businessName: string | null; onboardingDone: boolean }[] } | null>(null)
   const [emailError, setEmailError]       = useState<string | null>(null)
 
   const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
@@ -289,6 +291,77 @@ export default function NotificationsPage() {
                 : <p className="text-2xl font-bold text-emerald-400 mt-0.5">{emailCount?.withEmail ?? '—'}</p>}
             </div>
           </div>
+        </div>
+
+        {/* ── Diagnostic: check exact broadcast targets ─────────────────── */}
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-5 max-w-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Broadcast target list</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                Shows the exact emails the broadcast query returns from the live DB — use to verify delivery count.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                if (emailTargets) { setEmailTargets(null); return }
+                setCheckingTargets(true)
+                try {
+                  const res = await adminApi.emails.targets()
+                  setEmailTargets(res)
+                } catch (err: any) {
+                  setEmailError(err?.message ?? 'Failed to fetch targets')
+                } finally {
+                  setCheckingTargets(false)
+                }
+              }}
+              disabled={checkingTargets}
+              className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 border border-indigo-800 hover:border-indigo-600 px-3 py-2 rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap flex-shrink-0"
+            >
+              {checkingTargets
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking…</>
+                : emailTargets
+                  ? <><ChevronUp className="w-3.5 h-3.5" /> Hide</>
+                  : <><ChevronDown className="w-3.5 h-3.5" /> Check targets</>}
+            </button>
+          </div>
+
+          {emailTargets && (
+            <div className="mt-4 border-t border-gray-700 pt-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <span className={`text-2xl font-bold ${emailTargets.total === (emailCount?.withEmail ?? emailTargets.total) ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {emailTargets.total}
+                </span>
+                <div>
+                  <p className="text-sm text-white font-medium">
+                    {emailTargets.total === (emailCount?.withEmail ?? emailTargets.total)
+                      ? 'Matches "Have email" count ✓'
+                      : `Mismatch — count shows ${emailCount?.withEmail ?? '?'} but query returns ${emailTargets.total}`}
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    {emailTargets.targets.filter(t => t.businessName).length} have business name ·&nbsp;
+                    {emailTargets.targets.filter(t => !t.businessName).length} name-less (will greet by email prefix) ·&nbsp;
+                    {emailTargets.targets.filter(t => t.onboardingDone).length} onboarded
+                  </p>
+                </div>
+              </div>
+              <div className="max-h-72 overflow-y-auto rounded-lg border border-gray-700 divide-y divide-gray-700/60">
+                {emailTargets.targets.map((t, i) => (
+                  <div key={t.email ?? i} className="flex items-center gap-3 px-3 py-2 text-xs">
+                    <span className="text-gray-500 w-5 text-right flex-shrink-0">{i + 1}</span>
+                    <span className="text-gray-200 flex-1 truncate font-mono">{t.email ?? '—'}</span>
+                    <span className={`flex-shrink-0 ${t.businessName ? 'text-gray-400' : 'text-gray-600 italic'}`}>
+                      {t.businessName ?? 'no name'}
+                    </span>
+                    <span className={`flex-shrink-0 w-16 text-right ${t.onboardingDone ? 'text-emerald-500' : 'text-gray-600'}`}>
+                      {t.onboardingDone ? 'onboarded' : 'pending'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 max-w-xl">

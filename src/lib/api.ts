@@ -74,6 +74,7 @@ export const adminApi = {
   },
   emails: {
     count:     () => req<{ total: number; withEmail: number }>('GET', '/admin/emails/count'),
+    targets:   () => req<{ total: number; targets: { email: string | null; businessName: string | null; onboardingDone: boolean }[] }>('GET', '/admin/emails/targets'),
     broadcast: (body: { subject: string; body: string; ctaText?: string; ctaUrl?: string; recipients?: string[] }) =>
       req<{ sent: number; failed: number; total: number }>('POST', '/admin/emails/broadcast', body),
   },
