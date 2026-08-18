@@ -29,6 +29,8 @@ export default function NotificationsPage() {
 
   const [emailSubject, setEmailSubject]   = useState('')
   const [emailBody, setEmailBody]         = useState('')
+  const [emailCtaText, setEmailCtaText]   = useState('')
+  const [emailCtaUrl, setEmailCtaUrl]     = useState('')
   const [sendingEmail, setSendingEmail]   = useState(false)
   const [emailResult, setEmailResult]     = useState<EmailResult | null>(null)
   const [emailError, setEmailError]       = useState<string | null>(null)
@@ -68,7 +70,13 @@ export default function NotificationsPage() {
     if (!emailSubject.trim() || !emailBody.trim()) return
     setSendingEmail(true); setEmailResult(null); setEmailError(null)
     try {
-      const res = await adminApi.emails.broadcast({ subject: emailSubject.trim(), body: emailBody.trim() })
+      const res = await adminApi.emails.broadcast({
+        subject: emailSubject.trim(),
+        body:    emailBody.trim(),
+        ...(emailCtaText.trim() && emailCtaUrl.trim()
+          ? { ctaText: emailCtaText.trim(), ctaUrl: emailCtaUrl.trim() }
+          : {}),
+      })
       setEmailResult(res)
     } catch (err: any) {
       setEmailError(err?.message ?? 'Email broadcast failed')
@@ -272,11 +280,30 @@ export default function NotificationsPage() {
             <div>
               <label className={labelCls}>Body <span className="text-gray-600">(plain text — line breaks are preserved)</span></label>
               <textarea value={emailBody} onChange={(e) => setEmailBody(e.target.value)}
-                placeholder={'Hi there,\n\nWe just shipped something you\'ll love...\n\nThe CashOS team'}
+                placeholder={'Hi {{FIRST_NAME}},\n\nWe just shipped something you\'ll love...\n\nThe CashOS team'}
                 rows={8} className={`${inputCls} resize-y`} required />
               <p className="text-[11px] text-gray-500 mt-1">
-                Plain text only for now. Sent from <span className="text-gray-300">noreply@getcashos.com</span>.
+                Use <code className="text-gray-300">{'{{FIRST_NAME}}'}</code> for the business name.
+                Sent from <span className="text-gray-300">noreply@getcashos.com</span>.
               </p>
+            </div>
+
+            {/* CTA button (optional) */}
+            <div className="border border-dashed border-gray-600 rounded-lg p-4 space-y-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">CTA Button <span className="font-normal text-gray-600 normal-case tracking-normal">(optional)</span></p>
+              <div>
+                <label className={labelCls}>Button label</label>
+                <input value={emailCtaText} onChange={(e) => setEmailCtaText(e.target.value)}
+                  placeholder="e.g. Open App" className={inputCls} maxLength={60} />
+              </div>
+              <div>
+                <label className={labelCls}>Button URL</label>
+                <input value={emailCtaUrl} onChange={(e) => setEmailCtaUrl(e.target.value)}
+                  placeholder="e.g. https://app.getcashos.com/dashboard" className={inputCls} type="url" />
+              </div>
+              {(emailCtaText.trim() || emailCtaUrl.trim()) && (!emailCtaText.trim() || !emailCtaUrl.trim()) && (
+                <p className="text-[11px] text-amber-400">Both label and URL are required to render the button.</p>
+              )}
             </div>
             {emailError && (
               <div className="flex items-center gap-2 bg-red-900/30 border border-red-700/50 rounded-lg px-3 py-2">
